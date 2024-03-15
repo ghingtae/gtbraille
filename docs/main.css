@@ -1,9 +1,0 @@
-main {
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
-}
-textarea {
-    display: flex;
-    max-width: 100%;
-}
