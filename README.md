@@ -1,6 +1,6 @@
 # HanBraille
 
-Hangul Braille Converter / 한글 점자 변환기
+Hangul Braille Converter / 한글 점자 변환기 (WIP)
 
 Supports modern Hangul as well as common obsolete Hangul jamo (옛한글), including ㆁㆆㅿㆍ etc..
 
@@ -47,7 +47,7 @@ $ echo "ᄃᆡᄀᆡ 하나님이 셰샹ᄋᆞᆯ 사랑ᄒᆞ여 그 외아달�
 ## Todo
 
 - **Algorithm with better performance**
-- Cover all rules defined in "한국 점자 규정"
+- Cover all rules defined in "한국 점자 규정" (2024 edition)
   - Implement Unified English Braille for Latin alphabet blended with Hangul  
 - Conversion options for some characters which have alternatives
 - Reverse conversion

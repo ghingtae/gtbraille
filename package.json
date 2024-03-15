@@ -2,9 +2,9 @@
   "name": "hanbraille",
   "version": "0.0.0",
   "description": "Hangul Braille Converter",
-  "main": "out/exec.js",
+  "main": "docs/exec.js",
   "scripts": {
-    "test": "node out/exec.js",
+    "test": "node docs/exec.js",
     "build": "npm i && tsc",
     "deploy": "npx gh-pages -d dist"
   },

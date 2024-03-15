@@ -1,4 +1,4 @@
-import { Braille, Rule } from "./braille";
+import { Braille, Rule } from "./braille.js";
 export class HanBraille extends Braille {
     private u11bc_null: boolean;
     private u3163_isolate: boolean;
