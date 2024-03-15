@@ -1,4 +1,4 @@
 node_modules
 out
 .parcel-cache
-dist
+dist/*.js
