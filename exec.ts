@@ -137,15 +137,22 @@ function processJSONFile(filePath: string, targetKey: string, ascii: boolean = f
     }
 }
 
-// 폴더 내의 모든 JSON 파일을 처리하는 함수
-function processJSONFolder(folderPath: string, targetKey: string, ascii: boolean = false): void {
-    const files = fs.readdirSync(folderPath);
-    for (const file of files) {
-        if (path.extname(file).toLowerCase() === '.json') {
-            const filePath = path.join(folderPath, file);
-            processJSONFile(filePath, targetKey, ascii);
-        }
+// 폴더 내의 JSON 파일을 처리하는 함수 (시작과 끝 인덱스 추가)
+function processJSONFolder(folderPath: string, targetKey: string, ascii: boolean = false, startIndex: number = 0, endIndex: number = Infinity): void {
+    const files = fs.readdirSync(folderPath).filter(file => path.extname(file).toLowerCase() === '.json');
+    const totalFiles = files.length;
+    endIndex = Math.min(endIndex, totalFiles);
+
+    console.log(`Processing files from index ${startIndex} to ${endIndex - 1} (Total files: ${totalFiles})`);
+
+    for (let i = startIndex; i < endIndex; i++) {
+        const file = files[i];
+        const filePath = path.join(folderPath, file);
+        console.log(`Processing file ${i + 1}/${endIndex}: ${file}`);
+        processJSONFile(filePath, targetKey, ascii);
     }
+
+    console.log(`Processed ${endIndex - startIndex} files.`);
 }
 
 // 명령줄 인터페이스에 JSON 처리 옵션 추가
@@ -158,8 +165,30 @@ if (args.includes('-j')) {
     const jsonPath = args[jsonIndex + 1];
     const jsonKey = args[jsonIndex + 2];
     
+    // 시작과 끝 인덱스 옵션 추가
+    let startIndex = 0;
+    let endIndex = Infinity;
+    const startIndexOption = args.indexOf('-s');
+    const endIndexOption = args.indexOf('-e');
+
+    if (startIndexOption !== -1 && startIndexOption + 1 < args.length) {
+        startIndex = parseInt(args[startIndexOption + 1], 10);
+        if (isNaN(startIndex) || startIndex < 0) {
+            console.error('Error: -s option requires a non-negative integer.');
+            process.exit(1);
+        }
+    }
+
+    if (endIndexOption !== -1 && endIndexOption + 1 < args.length) {
+        endIndex = parseInt(args[endIndexOption + 1], 10);
+        if (isNaN(endIndex) || endIndex <= 0) {
+            console.error('Error: -e option requires a positive integer.');
+            process.exit(1);
+        }
+    }
+
     if (fs.lstatSync(jsonPath).isDirectory()) {
-        processJSONFolder(jsonPath, jsonKey, ascii);
+        processJSONFolder(jsonPath, jsonKey, ascii, startIndex, endIndex);
     } else {
         processJSONFile(jsonPath, jsonKey, ascii);
     }

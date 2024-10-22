@@ -1,4 +1,4 @@
-## 파일 구조
+# 파일 구조
 
 프로젝트의 주요 파일 구조는 다음과 같습니다:
 
@@ -29,7 +29,7 @@ hanbraille/
 ├── .gitignore           # Git 무시 파일 목록
 └── README.md            # 프로젝트 문서
 
-주요 파일들의 역할:
+## 주요 파일들의 역할:
 - `braille.js`: 기본 점자 변환 로직을 포함하는 Braille 클래스가 정의된 파일입니다.
 - `hanbraille.js`: 한글 점자 변환을 위한 HanBraille 클래스가 정의된 파일입니다.
 - `exec.js`: 명령줄 인터페이스를 구현하여 사용자가 쉽게 한글을 점자로 변환할 수 있게 하는 파일입니다.
@@ -40,5 +40,21 @@ hanbraille/
 
 이 구조는 TypeScript로 작성된 소스 코드가 `out/` 디렉토리에 컴파일되어 있음을 보여줍니다. `node_modules/`는 프로젝트의 의존성을 포함하고 있으며, .gitignore에 의해 Git에서 무시됩니다.
 
-추가 개발:
+## 추가 개발:
 - `data/` 디렉토리에 JSON 데이터를 넣으면 데이터를 분석하고 원하는 변수에 들어있는 텍스트를 exec.ts를 컴파일하여 명령줄 인터페이스를 사용하여 점자로 번역할 수 있습니다.
+
+# exec processJSONFolder 사용법
+
+```
+npm run build
+```
+변경 사항이 있을 수 있으니 빌드 후에 사용합니다.
+
+```
+node out/exec.js -j path/to/json/folder title -s 5 -e 10
+```
+
+- path/to/json/folder: JSON 파일이 있는 폴더 경로 (예: data/train)
+- title: JSON 파일 내에서 번역할 텍스트가 있는 변수 이름 (예: corpus)
+- -s 옵션은 시작 인덱스를 지정합니다.
+- -e 옵션은 끝 인덱스를 지정합니다.
