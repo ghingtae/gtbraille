@@ -2,6 +2,9 @@
 
 import { Braille } from "./braille";
 import { HanBraille } from "./hanbraille";
+import * as fs from 'fs';
+import * as path from 'path';
+import JSON5 from 'json5';
 
 let help: string = 
 `HanBraille - Hangul Braille Converter
@@ -39,22 +42,145 @@ for (let q of args) {
     }
 }
 var hanbraille = new HanBraille(u11bc_null, u3163_isolate);
-if (!process.stdin.isTTY) {
-    process.stdin.setEncoding('utf8');
-    process.stdin.on('data', (chunk) => {
-        text = chunk.toString().replace(/\r\n/g, '\n');
-    })
-    .on('end', () => {
+
+// 재귀적으로 JSON 객체를 탐색하는 함수
+function findValueByKey(obj: any, targetKey: string): string | null {
+    if (typeof obj !== 'object' || obj === null) {
+        return null;
+    }
+
+    if (targetKey in obj) {
+        return obj[targetKey];
+    }
+
+    if (Array.isArray(obj)) {
+        for (const item of obj) {
+            const result = findValueByKey(item, targetKey);
+            if (result !== null) {
+                return result;
+            }
+        }
+    } else {
+        for (const key in obj) {
+            const result = findValueByKey(obj[key], targetKey);
+            if (result !== null) {
+                return result;
+            }
+        }
+    }
+
+    return null;
+}
+
+// JSON 문자열을 정리하는 함수
+function cleanJSONString(jsonString: string): string {
+    // 주석 제거
+    jsonString = jsonString.replace(/\/\/.*$/gm, '');
+    jsonString = jsonString.replace(/\/\*[\s\S]*?\*\//g, '');
+
+    // 불필요한 공백 제거
+    jsonString = jsonString.replace(/^\s+|\s+$/gm, '');
+
+    // 줄바꿈 문자 제거
+    jsonString = jsonString.replace(/\n/g, '');
+
+    // 탭 문자 제거
+    jsonString = jsonString.replace(/\t/g, '');
+
+    // 연속된 공백을 하나의 공백으로 변경
+    jsonString = jsonString.replace(/\s+/g, ' ');
+
+    return jsonString;
+}
+
+// JSON 파일을 처리하고 점자로 변환하는 함수
+function processJSONFile(filePath: string, targetKey: string, ascii: boolean = false): void {
+    try {
+        let fileContent = fs.readFileSync(filePath, 'utf8');
+        fileContent = cleanJSONString(fileContent);
+        const jsonData = JSON.parse(fileContent);
+        const textToTranslate = findValueByKey(jsonData, targetKey);
+
+        if (typeof textToTranslate !== 'string') {
+            console.error(`Error: The key "${targetKey}" does not contain a string value or was not found in file ${filePath}`);
+            return;
+        }
+
+        const hanbraille = new HanBraille(u11bc_null, u3163_isolate);
+        let out = hanbraille.HangBrai(textToTranslate);
+        
+        if (ascii) {
+            out = hanbraille.BraiUCSToASCII(out);
+        }
+
+        // 원본 JSON에 점자 번역 추가
+        if (Array.isArray(jsonData.data)) {
+            jsonData.data[0].corpus_braille = out;
+        } else {
+            jsonData.corpus_braille = out;
+        }
+
+        // 결과를 새로운 JSON 파일로 저장
+        const outputDir = path.join(__dirname, 'data', 'output');
+        if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+        }
+        const outputPath = path.join(outputDir, `${path.basename(filePath, '.json')}_with_braille.json`);
+        fs.writeFileSync(outputPath, JSON.stringify(jsonData, null, 2));
+        console.log(`Result saved to: ${outputPath}`);
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error(`Error processing JSON file ${filePath}: ${error.message}`);
+        } else {
+            console.error(`Error processing JSON file ${filePath}: ${String(error)}`);
+        }
+    }
+}
+
+// 폴더 내의 모든 JSON 파일을 처리하는 함수
+function processJSONFolder(folderPath: string, targetKey: string, ascii: boolean = false): void {
+    const files = fs.readdirSync(folderPath);
+    for (const file of files) {
+        if (path.extname(file).toLowerCase() === '.json') {
+            const filePath = path.join(folderPath, file);
+            processJSONFile(filePath, targetKey, ascii);
+        }
+    }
+}
+
+// 명령줄 인터페이스에 JSON 처리 옵션 추가
+if (args.includes('-j')) {
+    const jsonIndex = args.indexOf('-j');
+    if (jsonIndex + 2 >= args.length) {
+        console.error('Error: -j option requires a JSON file/folder path and a key name.');
+        process.exit(1);
+    }
+    const jsonPath = args[jsonIndex + 1];
+    const jsonKey = args[jsonIndex + 2];
+    
+    if (fs.lstatSync(jsonPath).isDirectory()) {
+        processJSONFolder(jsonPath, jsonKey, ascii);
+    } else {
+        processJSONFile(jsonPath, jsonKey, ascii);
+    }
+} else {
+    if (!process.stdin.isTTY) {
+        process.stdin.setEncoding('utf8');
+        process.stdin.on('data', (chunk) => {
+            text = chunk.toString().replace(/\r\n/g, '\n');
+        })
+        .on('end', () => {
+            let out = hanbraille.HangBrai(text);
+            if (ascii) {
+                out = hanbraille.BraiUCSToASCII(out);
+            }
+            console.log(out);
+        });
+    } else {
         let out = hanbraille.HangBrai(text);
         if (ascii) {
             out = hanbraille.BraiUCSToASCII(out);
         }
         console.log(out);
-    });
-} else {
-    let out = hanbraille.HangBrai(text);
-    if (ascii) {
-        out = hanbraille.BraiUCSToASCII(out);
     }
-    console.log(out);
 }
