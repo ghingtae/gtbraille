@@ -8,10 +8,12 @@ import JSON5 from 'json5';
 
 let help: string = 
 `HanBraille - Hangul Braille Converter
-Usage: hanbraille [-a] [-i] [-q] "Some string"
+Usage: hanbraille [-a] [-i] [-q] [-j] [-u] "Some string"
   -a    print results as Braille ASCII
   -i    consider isolated vowel 'i' as postpositions, rather than jamo themselves
   -q    consider final 'ieung' as null symbols
+  -j    process JSON file(s)
+  -u    update rule_base_translation in JSON file
 `;
 
 let args: string[] = process.argv.slice(2);
@@ -20,10 +22,12 @@ if (process.stdin.isTTY && args.length < 1) {
     console.log(help);
     process.exit(1);
 }
+
 let ascii: boolean = false;
 let text = '';
 let u11bc_null = false;
 let u3163_isolate = false;
+
 for (let q of args) {
     if (q === '-a') {
         ascii = true;
@@ -41,6 +45,7 @@ for (let q of args) {
         text = text.concat(' ', q);
     }
 }
+
 var hanbraille = new HanBraille(u11bc_null, u3163_isolate);
 
 // 재귀적으로 JSON 객체를 탐색하는 함수
@@ -155,7 +160,41 @@ function processJSONFolder(folderPath: string, targetKey: string, ascii: boolean
     console.log(`Processed ${endIndex - startIndex} files.`);
 }
 
-// 명령줄 인터페이스에 JSON 처리 옵션 추가
+// JSON 파일의 모든 키를 점자로 번역하여 값에 넣는 함수
+function updateJSONWithBraille(filePath: string): void {
+    try {
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        const jsonData = JSON5.parse(fileContent);
+
+        const hanbraille = new HanBraille(u11bc_null, u3163_isolate);
+
+        function translateKeys(obj: any) {
+            for (const [key, value] of Object.entries(obj)) {
+                if (typeof value === 'object' && value !== null) {
+                    translateKeys(value);
+                } else {
+                    const translatedValue = hanbraille.HangBrai(key);
+                    obj[key] = translatedValue;
+                    console.log(`"${key}" => "${translatedValue}"`);
+                }
+            }
+        }
+
+        console.log("번역 과정:");
+        translateKeys(jsonData);
+
+        fs.writeFileSync(filePath, JSON5.stringify(jsonData, null, 2));
+        console.log(`Updated JSON file: ${filePath}`);
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error(`Error updating JSON file ${filePath}: ${error.message}`);
+        } else {
+            console.error(`Error updating JSON file ${filePath}: ${String(error)}`);
+        }
+    }
+}
+
+// 명령줄 인터페이스 처리
 if (args.includes('-j')) {
     const jsonIndex = args.indexOf('-j');
     if (jsonIndex + 2 >= args.length) {
@@ -165,7 +204,6 @@ if (args.includes('-j')) {
     const jsonPath = args[jsonIndex + 1];
     const jsonKey = args[jsonIndex + 2];
     
-    // 시작과 끝 인덱스 옵션 추가
     let startIndex = 0;
     let endIndex = Infinity;
     const startIndexOption = args.indexOf('-s');
@@ -192,6 +230,14 @@ if (args.includes('-j')) {
     } else {
         processJSONFile(jsonPath, jsonKey, ascii);
     }
+} else if (args.includes('-u')) {
+    const updateIndex = args.indexOf('-u');
+    if (updateIndex + 1 >= args.length) {
+        console.error('Error: -u option requires a JSON file path.');
+        process.exit(1);
+    }
+    const jsonPath = args[updateIndex + 1];
+    updateJSONWithBraille(jsonPath);
 } else {
     if (!process.stdin.isTTY) {
         process.stdin.setEncoding('utf8');
